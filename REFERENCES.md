@@ -1,0 +1,10 @@
+https://www.atarimania.com/documents/6503%20(65xx)%20Microprocessor%20Instant%20Reference%20Card.pdf
+https://www.pagetable.com/c64ref/6502/?tab=2#TAX
+https://gist.github.com/nobuh/1161983
+https://github.com/kromych/yamos6502/blob/main/src/yamos6502.rs
+https://github.com/nobuh/napple1/blob/c337c2207145eaac729adada958dc3c0d95b5c66/src/m6502
+https://www.youtube.com/watch?v=Ji0rodx9QA8
+https://github.com/davepoo/6502Emulator/blob/master/6502/6502Lib/src/private/m6502.cpp
+https://github.com/Klaus2m5/6502_65C02_functional_tests/blob/master/6502_functional_test.a65
+https://www.masswerk.at/6502/disassembler.html
+https://github.com/Klaus2m5/6502_65C02_functional_tests/blob/master/bin_files/6502_functional_test.lst

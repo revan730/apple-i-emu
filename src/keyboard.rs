@@ -19,6 +19,17 @@ impl Keyboard {
         }
     }
 
+    pub fn handle_key(&mut self, key: u8) {
+        let mut tmp = key;
+
+        if tmp >= b'a' && tmp <= b'z' {
+            tmp = tmp - b'a' + b'A';
+        }
+
+        self.write_kbd(tmp + 0x80);
+        self.write_cr(0xA7);
+    }
+
     pub fn write_kbd(&mut self, kbd: u8) {
         self.kbd = kbd;
     }

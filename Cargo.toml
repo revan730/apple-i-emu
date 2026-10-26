@@ -6,4 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+lazy_static = "1.4.0"
 mos_6502 = { path = "../6502" }
+
+[dependencies.sdl2]
+version = "0.38.0"
+features = ["ttf"]
+
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs"

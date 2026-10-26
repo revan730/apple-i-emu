@@ -50,8 +50,10 @@ const KBDCR: usize = 0xD011;
 const DSP: usize = 0xD012;
 const DSPCR: usize = 0xD013;
 
-static mut RAM_STORAGE: [u8; 8192] = [0; 8192];
+static mut HIGH_RAM_STORAGE: [u8; 4096] = [0; 4096];
+static mut LOW_RAM_STORAGE: [u8; 4096] = [0; 4096];
 static mut ROM_STORAGE: [u8; 256] = [0; 256];
+static mut TEST_MEM: [u8; 65536] = [0; 65536];
 
 pub fn init_mem(screen: Arc<Mutex<Screen>>, keyboard: Arc<Mutex<Keyboard>>) -> MemoryBus {
     let mut mem = MemoryBus::new();
@@ -59,9 +61,9 @@ pub fn init_mem(screen: Arc<Mutex<Screen>>, keyboard: Arc<Mutex<Keyboard>>) -> M
     let ram_region_low = MemoryRegion {
         start: RAM_LOW_START,
         end: RAM_LOW_END,
-        read_handler: Box::new(|address| unsafe { RAM_STORAGE[address] }),
+        read_handler: Box::new(|address| unsafe { LOW_RAM_STORAGE[address] }),
         write_handler: Box::new(|address, value| unsafe {
-            RAM_STORAGE[address] = value;
+            LOW_RAM_STORAGE[address] = value;
         }),
     };
 
@@ -70,9 +72,9 @@ pub fn init_mem(screen: Arc<Mutex<Screen>>, keyboard: Arc<Mutex<Keyboard>>) -> M
     let ram_region_high = MemoryRegion {
         start: RAM_HIGH_START,
         end: RAM_HIGH_END,
-        read_handler: Box::new(|address| unsafe { RAM_STORAGE[RAM_LOW_SIZE + address] }),
+        read_handler: Box::new(|address| unsafe { HIGH_RAM_STORAGE[address] }),
         write_handler: Box::new(|address, value| unsafe {
-            RAM_STORAGE[RAM_LOW_SIZE + address] = value;
+            HIGH_RAM_STORAGE[address] = value;
         }),
     };
 
@@ -99,6 +101,16 @@ pub fn init_mem(screen: Arc<Mutex<Screen>>, keyboard: Arc<Mutex<Keyboard>>) -> M
         })
     })();
 
+    let dsp_read_handler = (|| {
+        let _screen = screen.clone();
+
+        Box::new(move |address: usize| match address {
+            0x0 => _screen.lock().unwrap().read(),
+            0x1 => _screen.lock().unwrap().read_cr(),
+            _ => todo!(),
+        })
+    })();
+
     let kbd_region = MemoryRegion {
         start: KBD,
         end: KBDCR,
@@ -115,8 +127,7 @@ pub fn init_mem(screen: Arc<Mutex<Screen>>, keyboard: Arc<Mutex<Keyboard>>) -> M
     let dsp_region = MemoryRegion {
         start: DSP,
         end: DSPCR,
-        read_handler: Box::new(|_| 0x0), // It won't be read on real hardware but the way
-        // i implemented it, fetch_operand always reads from memory
+        read_handler: dsp_read_handler,
         write_handler: Box::new(move |address, value| match address {
             0x0 => screen.lock().unwrap().write(value),
             0x1 => screen.lock().unwrap().write_cr(value),
@@ -130,6 +141,27 @@ pub fn init_mem(screen: Arc<Mutex<Screen>>, keyboard: Arc<Mutex<Keyboard>>) -> M
         load_wozmon();
         load_basic();
     }
+
+    mem
+}
+
+pub fn init_test_program_mem() -> MemoryBus {
+    unsafe {
+        load_test_program();
+    }
+
+    let mut mem = MemoryBus::new();
+
+    let test_mem_region = MemoryRegion {
+        start: 0x0,
+        end: MEM_SPACE_END,
+        read_handler: Box::new(|address| unsafe { TEST_MEM[address] }),
+        write_handler: Box::new(|address, value| unsafe {
+            TEST_MEM[address] = value;
+        }),
+    };
+
+    mem.add_region(test_mem_region);
 
     mem
 }
@@ -152,5 +184,11 @@ unsafe fn load_wozmon() {
 unsafe fn load_basic() {
     let basic_builtin = include_bytes!("../roms/basic.rom");
     let basic = basic_builtin.to_vec();
-    RAM_STORAGE[RAM_LOW_SIZE..(basic.len() + RAM_LOW_SIZE)].copy_from_slice(&basic);
+    HIGH_RAM_STORAGE[0..basic.len()].copy_from_slice(&basic);
+}
+
+unsafe fn load_test_program() {
+    let test_builtin = include_bytes!("../roms/6502_functional_test.bin");
+    let test = test_builtin.to_vec();
+    TEST_MEM[0..test.len()].copy_from_slice(&test);
 }
